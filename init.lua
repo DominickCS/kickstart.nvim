@@ -240,6 +240,23 @@ do
   -- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
   -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
+  -- Keybinds for opening the side-bar mounted explorer (netrw)
+  vim.g.netrw_banner = 0 -- [0 / 1] toggle netrw banner
+  vim.g.netrw_liststyle = 0 -- 3 is treeview
+  vim.g.netrw_winsize = 25 -- percentage of view to take up
+  vim.keymap.set("n", "<leader>e", "<cmd>Lexplore<cr>", { desc = "Toggle [E]xplorer" })
+
+  -- Keybinds for buffers
+  vim.keymap.set("n", "<leader>bd", function()
+  if vim.bo.modified then
+    local choice = vim.fn.confirm("Buffer modified. Delete anyway?", "&Yes\n&No", 2)
+    if choice ~= 1 then return end
+    vim.cmd("bdelete!")
+  else
+    vim.cmd("bdelete")
+  end
+  end, { desc = "Buffer [D]elete" })
+
   -- [[ Basic Autocommands ]]
   --  See `:help lua-guide-autocommands`
 
@@ -695,7 +712,7 @@ do
     -- clangd = {},
     gopls = {},
     -- pyright = {},
-    rust_analyzer = {},
+     rust_analyzer = {},
     --
     -- Some languages (like typescript) have entire language plugins that can be useful:
     --    https://github.com/pmizio/typescript-tools.nvim
