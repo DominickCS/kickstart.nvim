@@ -240,11 +240,28 @@ do
   -- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
   -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
-  -- Keybinds for opening the side-bar mounted explorer (netrw)
-  vim.g.netrw_banner = 0 -- [0 / 1] toggle netrw banner
-  vim.g.netrw_liststyle = 0 -- 3 is treeview
-  vim.g.netrw_winsize = 25 -- percentage of view to take up
+  -- Keybinds for opening the side-bar mounted explorer (netrw), styled to look nicer
+  vim.g.netrw_banner = 0 -- hide the [Netrw ...] header banner
+  vim.g.netrw_liststyle = 3 -- tree-style listing instead of flat
+  vim.g.netrw_winsize = 25 -- percentage of window width
+  vim.g.netrw_keepdir = 0 -- keep netrw's cwd synced with the browsed dir
   vim.keymap.set("n", "<leader>e", "<cmd>Lexplore<cr>", { desc = "Toggle [E]xplorer" })
+
+  vim.pack.add {
+    'https://github.com/nvim-tree/nvim-web-devicons',
+    'https://github.com/prichrd/netrw.nvim',
+  }
+  require('netrw').setup {
+    icons = {
+      symlink = '',
+      directory = '',
+      file = '',
+    },
+    use_devicons = true,
+  }
+
+  -- Prettier Format Keybind
+  vim.keymap.set("n", "<leader>p", "<cmd>!prettier --write %<cr>", {desc = "[P]rettier Format"})
 
   -- Keybinds for buffers
   vim.keymap.set("n", "<leader>bd", function()
@@ -268,6 +285,7 @@ do
     group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
     callback = function() vim.hl.on_yank() end,
   })
+
 end
 
 -- ============================================================
@@ -407,10 +425,45 @@ do
     },
   }
 
+  vim.pack.add { gh 'craftzdog/solarized-osaka.nvim' }
+  require("solarized-osaka").setup({
+  -- your configuration comes here
+  -- or leave it empty to use the default settings
+  transparent = true, -- Enable this to disable setting the background color
+  terminal_colors = true, -- Configure the colors used when opening a `:terminal` in [Neovim](https://github.com/neovim/neovim)
+  styles = {
+    -- Style to be applied to different syntax groups
+    -- Value is any valid attr-list value for `:help nvim_set_hl`
+    comments = { italic = true },
+    keywords = { italic = true },
+    functions = {},
+    variables = {},
+    -- Background styles. Can be "dark", "transparent" or "normal"
+    sidebars = "dark", -- style for sidebars, see below
+    floats = "dark", -- style for floating windows
+  },
+  sidebars = { "qf", "help" }, -- Set a darker background on sidebar-like windows. For example: `["qf", "vista_kind", "terminal", "packer"]`
+  day_brightness = 0.3, -- Adjusts the brightness of the colors of the **Day** style. Number between 0 and 1, from dull to vibrant colors
+  hide_inactive_statusline = false, -- Enabling this option, will hide inactive statuslines and replace them with a thin border instead. Should work with the standard **StatusLine** and **LuaLine**.
+  dim_inactive = false, -- dims inactive windows
+  lualine_bold = false, -- When `true`, section headers in the lualine theme will be bold
+
+  --- You can override specific color groups to use other groups or a hex color
+  --- function will be called with a ColorScheme table
+  --- @param colors ColorScheme
+  on_colors = function(colors) end,
+
+  --- You can override specific highlights to use other groups or a hex color
+  --- function will be called with a Highlights and ColorScheme table
+  --- @param highlights Highlights
+  --- @param colors ColorScheme
+    on_highlights = function(highlights, colors) end,
+  })
+
   -- Load the colorscheme here.
   -- Like many other themes, this one has different styles, and you could load
   -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-  vim.cmd.colorscheme 'tokyonight-night'
+  vim.cmd.colorscheme 'solarized-osaka'
 
   -- Highlight todo, notes, etc in comments
   vim.pack.add { gh 'folke/todo-comments.nvim' }
@@ -464,6 +517,14 @@ do
 
   -- ... and there is more!
   --  Check out: https://github.com/nvim-mini/mini.nvim
+
+  vim.pack.add { gh 'JavaHello/spring-boot.nvim' }
+  require('spring_boot').setup {
+    ls_path = vim.fn.expand('~/.local/share/nvim/mason/packages/vscode-spring-boot-tools/extension/language-server/spring-boot-language-server-2.2.0-SNAPSHOT-exec.jar'),
+  }
+  require('spring_boot').init_lsp_commands()
+
+  vim.pack.add { gh 'mfussenegger/nvim-jdtls' }
 end
 
 -- ============================================================
@@ -715,21 +776,69 @@ do
     rust_analyzer = {},
     html = {},
     angularls = {},
-    astro = {},
+    astro = {
+      init_options = {
+        typescript = {
+          tsdk = '/usr/lib/node_modules/typescript/lib',
+        },
+      },
+    },
+    jdtls = {
+      init_options = {
+        bundles = require('spring_boot').java_extensions(),
+      },
+    },
+    ts_ls = {
+      init_options = {
+        tsserver = {
+          path = '/usr/lib/node_modules/typescript/lib',
+        },
+      },
+    },
+    stylua = {}, -- Used to format Lua code
+    gopls = {
+      settings = {
+        gopls = {
+          gofumpt = true,
+          usePlaceholders = true,
+          completeUnimported = true,
+          staticcheck = true,
+          directoryFilters = { '-.git', '-node_modules' },
+          semanticTokens = true,
+          hints = {
+            assignVariableTypes = true,
+            compositeLiteralFields = true,
+            compositeLiteralTypes = true,
+            constantValues = true,
+            functionTypeParameters = true,
+            parameterNames = true,
+            rangeVariableTypes = true,
+          },
+          analyses = {
+            nilness = true,
+            unusedparams = true,
+            unusedwrite = true,
+            useany = true,
+          },
+          codelenses = {
+            gc_details = false,
+            generate = true,
+            regenerate_cgo = true,
+            run_govulncheck = true,
+            test = true,
+            tidy = true,
+            upgrade_dependency = true,
+            vendor = true,
+          },
+        },
+      },
+    },
     --
     -- Some languages (like typescript) have entire language plugins that can be useful:
     --    https://github.com/pmizio/typescript-tools.nvim
     --
     -- But for many setups, the LSP (`ts_ls`) will work just fine
-    ts_ls = {
-      init_options = {
-        tsserver = {
-        path = "/usr/lib/node_modules/typescript/lib/tsserverlibrary.js",
-        },
-      },
-    },
 
-    stylua = {}, -- Used to format Lua code
 
     -- Special Lua Config, as recommended by neovim help docs
     lua_ls = {
@@ -810,6 +919,7 @@ do
       local enabled_filetypes = {
         -- lua = true,
         -- python = true,
+        go = true,
       }
       if enabled_filetypes[vim.bo[bufnr].filetype] then
         return { timeout_ms = 500 }
@@ -995,7 +1105,7 @@ do
   -- require 'kickstart.plugins.debug'
   -- require 'kickstart.plugins.indent_line'
   -- require 'kickstart.plugins.lint'
-  -- require 'kickstart.plugins.autopairs'
+  require 'kickstart.plugins.autopairs'
   -- require 'kickstart.plugins.neo-tree'
   -- require 'kickstart.plugins.gitsigns' -- adds gitsigns recommended keymaps
 
