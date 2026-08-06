@@ -776,6 +776,7 @@ do
     rust_analyzer = {},
     html = {},
     angularls = {},
+    marksman = {},
     astro = {
       init_options = {
         typescript = {
