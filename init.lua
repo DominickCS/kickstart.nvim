@@ -797,6 +797,7 @@ do
       },
     },
     stylua = {}, -- Used to format Lua code
+    markdown_oxide = {}, -- Wikilinks, backlinks, tags & daily notes for markdown notes (Obsidian-compatible, editor-agnostic)
     gopls = {
       settings = {
         gopls = {
@@ -1090,53 +1091,42 @@ do
 end
 
 -- ============================================================
--- SECTION 10: NOTE TAKING (obsidian.nvim)
--- Wikilinks, backlinks, daily notes & completion for the noteVault
--- Markdown vault. Replaces marksman (an external LSP that was
--- crashing on this vault with MailboxProcessor timeouts) since
--- obsidian.nvim runs in-process and doesn't spawn a fragile server.
+-- SECTION 10: NOTE TAKING (markdown-oxide)
+-- Wikilinks, backlinks, tags & daily notes via a standalone LSP
+-- server (mason-installed `markdown-oxide` binary, configured
+-- above in SECTION 6 as the `markdown_oxide` server). It has no
+-- dependency on any note-taking app and needs no hardcoded vault
+-- path: it activates per-buffer by walking up from the file for a
+-- `.git`, `.obsidian`, or `.moxide.toml` marker, so it reproduces
+-- across machines as long as the notes directory has one of those
+-- markers. If your vault has none, run `git init` in it or
+-- `touch .moxide.toml` at its root.
 -- ============================================================
 do
-  vim.pack.add {
-    { src = gh 'obsidian-nvim/obsidian.nvim', version = vim.version.range '*' },
-  }
+  -- Tags have no single "definition" to jump to, so following them and
+  -- following backlinks both go through the same LSP method: References.
+  -- Put the cursor on a `[[wikilink]]`, heading, block, or `#tag` and ask
+  -- for its references to get every place that links to (or uses) it —
+  -- this is what "backlinks" means here, tags included. The global `grr`
+  -- / `gW` keymaps set on any LspAttach (SECTION 5) already do this for
+  -- markdown_oxide with no extra config; the mappings below are just
+  -- Obsidian-flavored mnemonics on top of the same Telescope pickers.
+  local builtin = require 'telescope.builtin'
 
-  require('obsidian').setup {
-    legacy_commands = false, -- use the newer unified `:Obsidian <subcommand>` style
-    workspaces = {
-      { name = 'noteVault', path = '~/Projects/noteVault' },
-    },
-    picker = {
-      name = 'telescope.nvim', -- already installed above
-    },
-    completion = {
-      -- Served by obsidian.nvim's in-process LSP client, which blink.cmp
-      -- already picks up via the `lsp` source configured in SECTION 8.
-      min_chars = 2,
-    },
-  }
-
-  -- Keymaps scoped to markdown buffers only, so they don't shadow <CR>
-  -- or <leader>o* anywhere else.
   vim.api.nvim_create_autocmd('FileType', {
     pattern = 'markdown',
-    group = vim.api.nvim_create_augroup('obsidian-keymaps', { clear = true }),
+    group = vim.api.nvim_create_augroup('markdown-notes-keymaps', { clear = true }),
     callback = function(event)
       local buf = event.buf
+      local map = function(keys, func, desc, mode) vim.keymap.set(mode or 'n', keys, func, { buffer = buf, desc = 'Notes: ' .. desc }) end
 
-      -- obsidian.nvim's UI features (checkbox glyphs, hidden [[wikilink]] brackets)
-      -- need conceallevel set; see https://github.com/epwalsh/obsidian.nvim/issues/286
-      vim.opt_local.conceallevel = 2
-
-      local omap = function(keys, cmd, desc) vim.keymap.set('n', keys, ('<cmd>Obsidian %s<cr>'):format(cmd), { buffer = buf, desc = 'Obsidian: ' .. desc }) end
-
-      omap('<CR>', 'follow_link', 'Follow [[wikilink]] under cursor')
-      omap('<leader>oo', 'quick_switch', '[O]bsidian [O]pen note')
-      omap('<leader>of', 'search', '[O]bsidian [F]ind in vault')
-      omap('<leader>on', 'new', '[O]bsidian [N]ew note')
-      omap('<leader>ob', 'backlinks', '[O]bsidian [B]acklinks')
-      omap('<leader>ot', 'today', '[O]bsidian [T]oday (daily note)')
-      omap('<leader>oc', 'toggle_checkbox', '[O]bsidian toggle [C]heckbox')
+      map('<CR>', vim.lsp.buf.definition, 'Follow [[wikilink]] under cursor')
+      map('<leader>ob', builtin.lsp_references, '[O]bsidian-style [B]acklinks (cursor on link, heading, block, or #tag)')
+      map('<leader>og', function() builtin.lsp_dynamic_workspace_symbols { default_text = '#' } end, '[O]bsidian-style [G]lobal tag search')
+      map('<leader>or', vim.lsp.buf.rename, '[O]bsidian-style [R]ename note/heading/tag')
+      map('<leader>ot', '<cmd>LspToday<cr>', '[O]bsidian-style [T]oday (daily note)')
+      map('<leader>oy', '<cmd>LspYesterday<cr>', '[O]bsidian-style [Y]esterday (daily note)')
+      map('<leader>om', '<cmd>LspTomorrow<cr>', '[O]bsidian-style [M]orrow (daily note)')
     end,
   })
 end
