@@ -406,6 +406,7 @@ do
     spec = {
       { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
       { '<leader>t', group = '[T]oggle' },
+      { '<leader>o', group = '[O]bsidian' },
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
       { 'gr', group = 'LSP Actions', mode = { 'n' } },
     },
@@ -776,7 +777,6 @@ do
     rust_analyzer = {},
     html = {},
     angularls = {},
-    marksman = {},
     astro = {
       init_options = {
         typescript = {
@@ -1041,7 +1041,7 @@ do
   vim.pack.add { { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' } }
 
   -- Ensure basic parsers are installed
-  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'yaml' }
   require('nvim-treesitter').install(parsers)
 
   ---@param buf integer
@@ -1090,7 +1090,59 @@ do
 end
 
 -- ============================================================
--- SECTION 10: OPTIONAL EXAMPLES / NEXT STEPS
+-- SECTION 10: NOTE TAKING (obsidian.nvim)
+-- Wikilinks, backlinks, daily notes & completion for the noteVault
+-- Markdown vault. Replaces marksman (an external LSP that was
+-- crashing on this vault with MailboxProcessor timeouts) since
+-- obsidian.nvim runs in-process and doesn't spawn a fragile server.
+-- ============================================================
+do
+  vim.pack.add {
+    { src = gh 'obsidian-nvim/obsidian.nvim', version = vim.version.range '*' },
+  }
+
+  require('obsidian').setup {
+    legacy_commands = false, -- use the newer unified `:Obsidian <subcommand>` style
+    workspaces = {
+      { name = 'noteVault', path = '~/Projects/noteVault' },
+    },
+    picker = {
+      name = 'telescope.nvim', -- already installed above
+    },
+    completion = {
+      -- Served by obsidian.nvim's in-process LSP client, which blink.cmp
+      -- already picks up via the `lsp` source configured in SECTION 8.
+      min_chars = 2,
+    },
+  }
+
+  -- Keymaps scoped to markdown buffers only, so they don't shadow <CR>
+  -- or <leader>o* anywhere else.
+  vim.api.nvim_create_autocmd('FileType', {
+    pattern = 'markdown',
+    group = vim.api.nvim_create_augroup('obsidian-keymaps', { clear = true }),
+    callback = function(event)
+      local buf = event.buf
+
+      -- obsidian.nvim's UI features (checkbox glyphs, hidden [[wikilink]] brackets)
+      -- need conceallevel set; see https://github.com/epwalsh/obsidian.nvim/issues/286
+      vim.opt_local.conceallevel = 2
+
+      local omap = function(keys, cmd, desc) vim.keymap.set('n', keys, ('<cmd>Obsidian %s<cr>'):format(cmd), { buffer = buf, desc = 'Obsidian: ' .. desc }) end
+
+      omap('<CR>', 'follow_link', 'Follow [[wikilink]] under cursor')
+      omap('<leader>oo', 'quick_switch', '[O]bsidian [O]pen note')
+      omap('<leader>of', 'search', '[O]bsidian [F]ind in vault')
+      omap('<leader>on', 'new', '[O]bsidian [N]ew note')
+      omap('<leader>ob', 'backlinks', '[O]bsidian [B]acklinks')
+      omap('<leader>ot', 'today', '[O]bsidian [T]oday (daily note)')
+      omap('<leader>oc', 'toggle_checkbox', '[O]bsidian toggle [C]heckbox')
+    end,
+  })
+end
+
+-- ============================================================
+-- SECTION 11: OPTIONAL EXAMPLES / NEXT STEPS
 -- kickstart.plugins.* examples
 -- ============================================================
 do
