@@ -784,11 +784,11 @@ do
         },
       },
     },
-    jdtls = {
-      init_options = {
-        bundles = require('spring_boot').java_extensions(),
-      },
-    },
+    -- NOTE: `jdtls` is intentionally *not* configured here. It's started
+    -- per-project from `ftplugin/java.lua` via `nvim-jdtls`, which gives it
+    -- an isolated `--data` workspace dir and the Spring Boot bundles.
+    -- Enabling it through this generic `vim.lsp.enable()` loop as well would
+    -- spin up a second, competing jdtls client on every Java buffer.
     ts_ls = {
       init_options = {
         tsserver = {
@@ -897,6 +897,7 @@ do
   local ensure_installed = vim.tbl_keys(servers or {})
   vim.list_extend(ensure_installed, {
     -- You can add other tools here that you want Mason to install
+    'jdtls', -- Java LSP; started manually from ftplugin/java.lua via nvim-jdtls
   })
 
   require('mason-tool-installer').setup { ensure_installed = ensure_installed }
